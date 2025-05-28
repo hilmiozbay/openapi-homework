@@ -1,0 +1,315 @@
+openapi: 3.1.0
+info:
+  title: Üniversite Kütüphane API'si
+  description: Kitaplar, öğrenciler ve ödünç işlemlerini yönetmek için REST API
+  version: 1.0.0
+  contact:
+    name: Üniversite Kütüphane Desteği
+    email: support@university.edu
+
+servers:
+  - url: http://api.university.edu/v1
+    description: Üretim sunucusu
+  - url: http://staging-api.university.edu/v1
+    description: Test sunucusu
+
+components:
+  schemas:
+    Book:
+      type: object
+      required:
+        - id
+        - title
+        - author
+        - isbn
+        - publisher
+        - pageCount
+        - stock
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Kitabın benzersiz kimlik numarası
+        title:
+          type: string
+          description: Kitabın başlığı
+        author:
+          type: string
+          description: Kitabın yazarı
+        isbn:
+          type: string
+          pattern: '^[0-9]{13}$'
+          description: ISBN-13 formatında kitap tanımlayıcısı
+        publisher:
+          type: string
+          description: Kitabın yayıncısı
+        pageCount:
+          type: integer
+          minimum: 1
+          description: Kitaptaki sayfa sayısı
+        stock:
+          type: integer
+          minimum: 0
+          description: Mevcut kopya sayısı
+
+    Student:
+      type: object
+      required:
+        - id
+        - name
+        - studentNumber
+        - email
+        - isActive
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Öğrencinin benzersiz tanımlayıcısı
+        name:
+          type: string
+          description: Öğrencinin tam adı
+        studentNumber:
+          type: string
+          description: Öğrencinin benzersiz öğrenci numarası
+        email:
+          type: string
+          format: email
+          description: Öğrencinin e-posta adresi
+        isActive:
+          type: boolean
+          description: Öğrencinin aktif olup olmadığı
+
+    Loan:
+      type: object
+      required:
+        - id
+        - studentId
+        - bookId
+        - loanDate
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Ödünç işleminin benzersiz tanımlayıcısı
+        studentId:
+          type: string
+          format: uuid
+          description: Kitabı ödünç alan öğrencinin ID'si
+        bookId:
+          type: string
+          format: uuid
+          description: Ödünç alınan kitabın ID'si
+        loanDate:
+          type: string
+          format: date
+          description: Kitabın ödünç alındığı tarih
+        returnDate:
+          type: string
+          format: date
+          nullable: true
+          description: Kitabın iade edildiği tarih
+        status:
+          type: string
+          enum: [ongoing, returned, late]
+          description: Ödünç işleminin mevcut durumu
+
+ 
+paths:
+  /books:
+    get:
+      tags: [books]
+      summary: Tüm kitapları getirir
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: List of books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
+    post:
+      tags: [books]
+      summary: Yeni bir kitap oluşturur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Book'
+      responses:
+        '201':
+          description: Book created
+        '400':
+          description: Invalid input
+  /books/{id}:
+    get:
+      tags: [books]
+      summary: ID'ye göre bir kitap getirir
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Book found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+    put:
+      tags: [books]
+      summary: ID'ye göre bir kitabı günceller
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Book'
+      responses:
+        '200':
+          description: Book updated
+        '400':
+          description: Invalid input
+    delete:
+      tags: [books]
+      summary: ID'ye göre bir kitabı siler
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Book deleted
+  /students:
+    get:
+      tags: [students]
+      summary: Tüm öğrencileri getirir
+      responses:
+        '200':
+          description: List of students
+    post:
+      tags: [students]
+      summary: Yeni bir öğrenci oluşturur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Student'
+      responses:
+        '201':
+          description: Student created
+  /students/{id}:
+    get:
+      tags: [students]
+      summary: ID'ye göre bir öğrenci getirir
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Student found
+    put:
+      tags: [students]
+      summary: ID'ye göre bir öğrenci günceller
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Student'
+      responses:
+        '200':
+          description: Student updated
+    delete:
+      tags: [students]
+      summary: ID'ye göre bir öğrenci siler
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Student deleted
+  /loans:
+    get:
+      tags: [loans]
+      summary: Tüm ödünç işlemlerini getirir
+      responses:
+        '200':
+          description: List of loans
+    post:
+      tags: [loans]
+      summary: Yeni bir ödünç işlemi oluşturur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Loan'
+      responses:
+        '201':
+          description: Loan created
+  /loans/{id}:
+    get:
+      tags: [loans]
+      summary: ID'ye göre bir ödünç işlemi getirir
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Loan found
+    patch:
+      tags: [loans]
+      summary: Bir ödünç işlemini iade eder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ödünç işlemi iade edildi
